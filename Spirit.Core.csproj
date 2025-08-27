@@ -1,0 +1,71 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<RootNamespace>Spirit.Core</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<RagempServerDir>C:\RAGEMP\server-files</RagempServerDir>
+		<RagempResourceDir>$(RagempServerDir)\dotnet\resources\Core</RagempResourceDir>
+
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Spirit.Data\Spirit.Data.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- EF Core + MySQL provider -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.19">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.19" />
+		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The actual server API; needed to compile Script/Player/etc. -->
+		<Reference Include="GTANetworkAPI">
+			<HintPath>$(RagempServerDir)\dotnet\runtime\Bootstrapper.dll</HintPath>
+			<Private>false</Private>
+			<!-- do NOT copy to output/resource -->
+			<SpecificVersion>false</SpecificVersion>
+		</Reference>
+	</ItemGroup>
+
+	<Target Name="PostBuildCopyToRage" AfterTargets="Build">
+		<Message Importance="high" Text="&gt;&gt;&gt; Copying Core + deps to $(RagempResourceDir)" />
+		<MakeDir Directories="$(RagempResourceDir)" />
+
+		<!-- Core.dll -->
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(RagempResourceDir)" SkipUnchangedFiles="true" />
+
+		<!-- Spirit.Data.dll -->
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Spirit.Data\bin\$(Configuration)\net8.0\Spirit.Data.dll" DestinationFolder="$(RagempResourceDir)" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildProjectDirectory)\..\Spirit.Data\bin\$(Configuration)\net8.0\Spirit.Data.dll')" />
+
+		<!-- Only provider DLLs (avoid copying BCL assemblies) -->
+		<!-- inside <Target Name="PostBuildCopyToRage"> … -->
+		<ItemGroup>
+			<!-- Copy ALL package runtime assets; this does NOT include System.* from the shared framework -->
+			<_deps Include="@(ReferenceCopyLocalPaths)" />
+		</ItemGroup>
+		<Copy SourceFiles="@(_deps)" DestinationFolder="$(RagempResourceDir)" SkipUnchangedFiles="true" />
+
+
+	</Target>
+
+	<!-- Optional: copy appsettings.json if you keep it in project root -->
+	<ItemGroup>
+		<None Include="appsettings.json" Condition="Exists('appsettings.json')">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	<Target Name="PostBuildCopyConfig" AfterTargets="Build" Condition="Exists('appsettings.json')">
+		<Copy SourceFiles="$(TargetDir)appsettings.json" DestinationFolder="$(RagempResourceDir)" SkipUnchangedFiles="true" />
+	</Target>
+
+</Project>

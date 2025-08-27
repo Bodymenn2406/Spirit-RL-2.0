@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spirit.Core", "Spirit.Core.csproj", "{E5D561E2-4A31-4223-BC70-F41E922500AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spirit.Data", "..\Spirit.Data\Spirit.Data.csproj", "{E5607D1D-C28F-147B-EEAC-6EC8914C556D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E5D561E2-4A31-4223-BC70-F41E922500AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5D561E2-4A31-4223-BC70-F41E922500AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5D561E2-4A31-4223-BC70-F41E922500AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5D561E2-4A31-4223-BC70-F41E922500AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5607D1D-C28F-147B-EEAC-6EC8914C556D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5607D1D-C28F-147B-EEAC-6EC8914C556D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5607D1D-C28F-147B-EEAC-6EC8914C556D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5607D1D-C28F-147B-EEAC-6EC8914C556D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {39A7DBC2-02C1-4C05-B14A-BEA9222AA51E}
+	EndGlobalSection
+EndGlobal

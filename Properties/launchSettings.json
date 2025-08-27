@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "RageMP Spirit RL": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\RAGEMP\\server-files"
+    },
+    "RageMP Spirit": {
+      "commandName": "Executable",
+      "executablePath": "C:\\RAGEMP\\server-files\\ragemp-server.exe",
+      "workingDirectory": "C:\\RAGEMP\\server-files"
+    }
+  }
+}

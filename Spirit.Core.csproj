@@ -13,10 +13,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Player\PlayerEvents.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\Spirit.Data\Spirit.Data.csproj" />
 	</ItemGroup>
 
@@ -67,7 +63,6 @@
 		<None Include="appsettings.json" Condition="Exists('appsettings.json')">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Include="Player\PlayerEvents.cs" />
 	</ItemGroup>
 	<Target Name="PostBuildCopyConfig" AfterTargets="Build" Condition="Exists('appsettings.json')">
 		<Copy SourceFiles="$(TargetDir)appsettings.json" DestinationFolder="$(RagempResourceDir)" SkipUnchangedFiles="true" />

@@ -5,15 +5,16 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Spirit.Core.Config;
+using Spirit.Core.Utils;
 
 namespace Spirit.Core.Services
 {
     public sealed class DiscordService
     {
-        private readonly DiscordConfig _cfg;
+        private readonly AppConfig _cfg;
         private readonly HttpClient _http;
 
-        public DiscordService(DiscordConfig cfg)
+        public DiscordService(AppConfig cfg)
         {
             _cfg = cfg;
             _http = new HttpClient
@@ -43,13 +44,13 @@ namespace Spirit.Core.Services
             // Build body
             var kv = new List<KeyValuePair<string, string>>
             {
-                new("client_id", _cfg.ClientId),
-                new("client_secret", _cfg.ClientSecret),
+                new("client_id", _cfg.Discord.ClientId),
+                new("client_secret", _cfg.Discord.ClientSecret),
                 new("grant_type", "authorization_code"),
                 new("code", code)
             };
-            if (!string.IsNullOrWhiteSpace(_cfg.RedirectUri))
-                kv.Add(new("redirect_uri", _cfg.RedirectUri));
+            if (!string.IsNullOrWhiteSpace(_cfg.Discord.RedirectUri))
+                kv.Add(new("redirect_uri", _cfg.Discord.RedirectUri));
 
             using var req = new HttpRequestMessage(HttpMethod.Post, "oauth2/token")
             {
@@ -75,25 +76,53 @@ namespace Spirit.Core.Services
             return JsonSerializer.Deserialize<MeResponse>(raw)!;
         }
 
-        public async Task<(bool isMember, string[] roles)> CheckGuildMemberAsync(string userId, CancellationToken ct = default)
+        public async Task<(bool isMember, string[] roles)> CheckGuildMemberAsync(string userId)
         {
-            using var req = new HttpRequestMessage(HttpMethod.Get, $"guilds/{_cfg.GuildId}/members/{userId}");
-            req.Headers.Authorization = AuthenticationHeaderValue.Parse(_cfg.BotToken); // "Bot xxx"
-            using var res = await _http.SendAsync(req, ct);
-            var raw = await res.Content.ReadAsStringAsync(ct);
+            try
+            {
+                if (string.IsNullOrWhiteSpace(_cfg.Discord.GuildId))
+                    throw new Exception("Discord GuildId missing in config");
 
-            if (res.StatusCode == System.Net.HttpStatusCode.NotFound)
+                if (string.IsNullOrWhiteSpace(_cfg.Discord.BotToken))
+                    throw new Exception("Discord BotToken missing in config");
+
+                var url = $"/guilds/{_cfg.Discord.GuildId}/members/{userId}";
+                // All comments in English as requested
+                var rawToken = _cfg.Discord.BotToken.StartsWith("Bot ")
+                    ? _cfg.Discord.BotToken.Substring(4)
+                    : _cfg.Discord.BotToken;
+
+                var req = new HttpRequestMessage(HttpMethod.Get, $"guilds/{_cfg.Discord.GuildId}/members/{userId}");
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bot", rawToken);
+
+                // --- Debug logs ---
+                Logger.Log($"[DiscordService] Guild check request: GuildId={_cfg.Discord.GuildId}, UserId={userId}", Logger.Level.Debug);
+                Logger.Log($"[DiscordService] BotToken length={_cfg.Discord.BotToken.Length}", Logger.Level.Debug);
+
+                var res = await _http.SendAsync(req);
+                var body = await res.Content.ReadAsStringAsync();
+
+                if (!res.IsSuccessStatusCode)
+                {
+                    Logger.Log($"Discord guild member check failed: {(int)res.StatusCode} {res.ReasonPhrase} - {body}", Logger.Level.Warn);
+                    return (false, Array.Empty<string>());
+                }
+
+                var member = JsonSerializer.Deserialize<JsonElement>(body);
+                if (member.TryGetProperty("roles", out var rolesElem) && rolesElem.ValueKind == JsonValueKind.Array)
+                {
+                    var roles = rolesElem.EnumerateArray().Select(r => r.GetString() ?? "").ToArray();
+                    return (true, roles);
+                }
+
+                return (true, Array.Empty<string>());
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("CheckGuildMemberAsync error: " + ex.Message, Logger.Level.Error);
                 return (false, Array.Empty<string>());
-
-            if (!res.IsSuccessStatusCode)
-                throw new Exception($"Discord guild member check failed: {(int)res.StatusCode} {res.ReasonPhrase} - {raw}");
-
-            using var doc = JsonDocument.Parse(raw);
-            var roles = doc.RootElement.TryGetProperty("roles", out var r) && r.ValueKind == JsonValueKind.Array
-                ? r.EnumerateArray().Select(x => x.GetString() ?? "").Where(s => s.Length > 0).ToArray()
-                : Array.Empty<string>();
-
-            return (true, roles);
+            }
         }
+
     }
 }

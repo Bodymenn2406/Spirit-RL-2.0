@@ -112,7 +112,6 @@ namespace Spirit.Core.Players
                 p.Dimension = 0;
                 var pos = new Vector3(ch.PosX, ch.PosY, ch.PosZ);
                 NAPI.Player.SpawnPlayer(p, pos, ch.Heading);
-                NAPI.Player.FreezePlayerTime(p, false);
                 NAPI.Chat.SendChatMessageToPlayer(p, "~g~Willkommen auf Spirit RL — Legends of Spirit Reallife.");
             });
         }

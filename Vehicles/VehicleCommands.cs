@@ -1,8 +1,9 @@
 ﻿// All comments in English as requested
-using System;
 using GTANetworkAPI;
 using Spirit.Core.Const;
+using Spirit.Core.Entities;
 using Spirit.Core.Vehicles;
+using System;
 
 namespace Spirit.Core.Vehicles
 {
@@ -15,26 +16,28 @@ namespace Spirit.Core.Vehicles
         [Command("veh")]
         public void CmdVeh(Player basePlayer, string model, string plate = "SPIRIT")
         {
+            SPlayer p = basePlayer.AsSPlayer();
             // delete previous test vehicle if present
-            if (basePlayer.HasData(DataKeys.LastSpawnedVehicle))
+            if (p.Base.HasData(DataKeys.LastSpawnedVehicle))
             {
-                var old = basePlayer.GetData<Vehicle>(DataKeys.LastSpawnedVehicle);
+                var old = p.Base.GetData<Vehicle>(DataKeys.LastSpawnedVehicle);
                 if (old != null && old.Exists)
                 {
                     try { old.Delete(); } catch { NAPI.Entity.DeleteEntity(old); }
                 }
-                basePlayer.ResetData(DataKeys.LastSpawnedVehicle);
+                p.Base.ResetData(DataKeys.LastSpawnedVehicle);
             }
 
             if (!VehicleHelpers.TryResolveVehicleModel(model, out var hash))
             {
-                NAPI.Chat.SendChatMessageToPlayer(basePlayer, "~r~Unbekanntes Fahrzeugmodell: ~w~" + model);
+                p.NotifyError("Unbekanntes Fahrzeugmodell: " + model);
+                p.Base.TriggerEvent("client:ui:auth:timeout", "Timeout bei der Prüfung.");
                 return;
             }
 
             // spawn position a few meters ahead
-            var pos = basePlayer.Position;
-            var heading = basePlayer.Heading;
+            var pos = p.Base.Position;
+            var heading = p.Base.Heading;
             float rad = (float)(Math.PI / 180.0) * heading;
             var spawnPos = new Vector3(
                 pos.X + (float)Math.Cos(rad) * 3.0f,
@@ -45,24 +48,21 @@ namespace Spirit.Core.Vehicles
             var veh = NAPI.Vehicle.CreateVehicle(hash, spawnPos, heading, 0, 0, plate);
             if (veh == null || !veh.Exists)
             {
-                NAPI.Chat.SendChatMessageToPlayer(basePlayer, "~r~Fahrzeug konnte nicht erstellt werden.");
+                p.NotifyError("Fahrzeug konnte nicht erstellt werden.");
                 return;
             }
 
-            veh.Dimension = basePlayer.Dimension;
+            veh.Dimension = p.Base.Dimension;
             veh.EngineStatus = true;
 
             // link both ways using entity data
-            basePlayer.SetData(DataKeys.LastSpawnedVehicle, veh);
-            veh.SetData(DataKeys.SpawnedByRemoteId, basePlayer.Handle.Value);
+            p.Base.SetData(DataKeys.LastSpawnedVehicle, veh);
+            veh.SetData(DataKeys.SpawnedByRemoteId, p.Base.Handle.Value);
 
             // seat as driver
-            VehicleHelpers.SeatDriver(basePlayer, veh);
+            VehicleHelpers.SeatDriver(p.Base, veh);
 
-            NAPI.Chat.SendChatMessageToPlayer(
-                basePlayer,
-                $"~g~Spawned & entered: ~w~{model} ~g~(Hash:~w~ {hash}) ~g~Kennz.:~w~ {plate}"
-            );
+            p.NotifySuccess($"Spawned & entered: {model} (Hash: {hash}) Kennz.: {plate}");
         }
 
         [Command("v")]
@@ -72,17 +72,19 @@ namespace Spirit.Core.Vehicles
         [Command("dv")]
         public void CmdDeleteVeh(Player basePlayer)
         {
-            Vehicle? v = basePlayer.Vehicle;
+            var p = basePlayer.AsSPlayer();
+            Vehicle? v = p.Base.Vehicle;
+
             if (v == null || !v.Exists)
             {
-                v = basePlayer.HasData(DataKeys.LastSpawnedVehicle)
-                    ? basePlayer.GetData<Vehicle>(DataKeys.LastSpawnedVehicle)
+                v = p.Base.HasData(DataKeys.LastSpawnedVehicle)
+                    ? p.Base.GetData<Vehicle>(DataKeys.LastSpawnedVehicle)
                     : null;
             }
 
             if (v == null || !v.Exists)
             {
-                NAPI.Chat.SendChatMessageToPlayer(basePlayer, "~y~Kein Fahrzeug gefunden.");
+                p.NotifyError($"Kein Fahrzeug gefunden.");
                 return;
             }
 
@@ -90,22 +92,22 @@ namespace Spirit.Core.Vehicles
             if (v.HasData(DataKeys.SpawnedByRemoteId))
             {
                 var ownerId = v.GetData<ushort>(DataKeys.SpawnedByRemoteId);
-                if (ownerId != basePlayer.Handle.Value)
+                if (ownerId != p.Base.Handle.Value)
                 {
-                    NAPI.Chat.SendChatMessageToPlayer(basePlayer, "~r~Du kannst dieses Fahrzeug nicht löschen.");
+                    p.NotifyError($"Du kannst dieses fahrzeug nicht löschen.");
                     return;
                 }
             }
 
             try { v.Delete(); } catch { NAPI.Entity.DeleteEntity(v); }
 
-            if (basePlayer.HasData(DataKeys.LastSpawnedVehicle))
+            if (p.Base.HasData(DataKeys.LastSpawnedVehicle))
             {
-                var last = basePlayer.GetData<Vehicle>(DataKeys.LastSpawnedVehicle);
-                if (last == null || last == v) basePlayer.ResetData(DataKeys.LastSpawnedVehicle);
+                var last = p.Base.GetData<Vehicle>(DataKeys.LastSpawnedVehicle);
+                if (last == null || last == v) p.Base.ResetData(DataKeys.LastSpawnedVehicle);
             }
 
-            NAPI.Chat.SendChatMessageToPlayer(basePlayer, "~g~Fahrzeug gelöscht.");
+            p.NotifySuccess($"Fahrzeug gelöscht.");
         }
     }
 }

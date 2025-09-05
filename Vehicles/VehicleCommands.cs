@@ -23,9 +23,9 @@ namespace Spirit.Core.Vehicles
                 var old = p.Base.GetData<Vehicle>(DataKeys.LastSpawnedVehicle);
                 if (old != null && old.Exists)
                 {
-                    try { old.Delete(); } catch { NAPI.Entity.DeleteEntity(old); }
+                    //try { old.Delete(); } catch { NAPI.Entity.DeleteEntity(old); }
                 }
-                p.Base.ResetData(DataKeys.LastSpawnedVehicle);
+                //p.Base.ResetData(DataKeys.LastSpawnedVehicle);
             }
 
             if (!VehicleHelpers.TryResolveVehicleModel(model, out var hash))

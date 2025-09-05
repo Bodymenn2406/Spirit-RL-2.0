@@ -1,11 +1,12 @@
 ﻿// All comments in English as requested
 using System;
 using GTANetworkAPI;
+using Spirit.Core.Entities;
 using Spirit.Core.Utils;
 
 namespace Spirit.Core.Vehicles
 {
-    public static class VehicleHelpers
+    public class VehicleHelpers : Script
     {
         public static bool TryResolveVehicleModel(string input, out uint modelHash)
         {
@@ -30,6 +31,14 @@ namespace Spirit.Core.Vehicles
                 Logger.Log("TryResolveVehicleModel error: " + ex.Message, Logger.Level.Warn);
                 return false;
             }
+        }
+
+        [RemoteEvent("server:veh:setLightState")]
+        public static void VehSetLightState(Player player, int state)
+        {
+            if (player.Vehicle == null) return;
+            if (state < 0 || state > 2) state = 0;
+            player.Vehicle.SetSharedData("veh:setLightState", state);
         }
 
         /// <summary>

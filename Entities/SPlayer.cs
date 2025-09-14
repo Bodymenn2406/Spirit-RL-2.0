@@ -96,6 +96,14 @@ namespace Spirit.Core.Entities
             _ => "info"
         };
 
+        public Vector3 GetForwardPosition(float distance = 3.0f)
+        {
+            double heading = Base.Heading * Math.PI / 180.0;
+            float x = (float)(-Math.Sin(heading)) * distance;
+            float y = (float)(Math.Cos(heading)) * distance;
+            return new Vector3(Base.Position.X + x, Base.Position.Y + y, Base.Position.Z);
+        }
+
         private static int Clamp(int? ms)
         {
             var d = ms ?? DefaultToastMs;
@@ -104,6 +112,7 @@ namespace Spirit.Core.Entities
             return d;
         }
     }
+
 
     /// <summary>
     /// Self-documenting kinds for Notify.

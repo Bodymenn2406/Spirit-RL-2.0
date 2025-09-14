@@ -1,12 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using GTANetworkAPI;
+using Spirit.Core.Vehicles;
 
 namespace Spirit.Core
 {
-    internal class Main
+    internal class Main : Script
     {
+        [ServerEvent(Event.ResourceStart)]
+        public void OnResourceStart()
+        {
+            VehicleManager.StartFuelLoop();
+            VehicleManager.StartOdometerLoop();
+        }
     }
 }

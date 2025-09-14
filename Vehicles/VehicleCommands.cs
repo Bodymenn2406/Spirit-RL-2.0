@@ -4,6 +4,7 @@ using Spirit.Core.Const;
 using Spirit.Core.Entities;
 using Spirit.Core.Vehicles;
 using System;
+using System.Drawing;
 
 namespace Spirit.Core.Vehicles
 {
@@ -14,100 +15,147 @@ namespace Spirit.Core.Vehicles
     public sealed class VehicleCommands : Script
     {
         [Command("veh")]
-        public void CmdVeh(Player basePlayer, string model, string plate = "SPIRIT")
+        public void CmdVehSpawn(Player basePlayer, string modelName, int color1 = 0, int color2 = 0)
         {
-            SPlayer p = basePlayer.AsSPlayer();
-            // delete previous test vehicle if present
-            if (p.Base.HasData(DataKeys.LastSpawnedVehicle))
-            {
-                var old = p.Base.GetData<Vehicle>(DataKeys.LastSpawnedVehicle);
-                if (old != null && old.Exists)
-                {
-                    //try { old.Delete(); } catch { NAPI.Entity.DeleteEntity(old); }
-                }
-                //p.Base.ResetData(DataKeys.LastSpawnedVehicle);
-            }
+            SPlayer player = basePlayer.AsSPlayer(); // oder dein eigener Getter
 
-            if (!VehicleHelpers.TryResolveVehicleModel(model, out var hash))
+            uint hash;
+            if (Enum.TryParse(typeof(VehicleHash), modelName, true, out var vehHash))
+                hash = (uint)(VehicleHash)vehHash;
+            else if (uint.TryParse(modelName, out var parsed))
+                hash = parsed;
+            else
+                hash = NAPI.Util.GetHashKey(modelName);
+
+            if (hash == 0)
             {
-                p.NotifyError("Unbekanntes Fahrzeugmodell: " + model);
-                p.Base.TriggerEvent("client:ui:auth:timeout", "Timeout bei der Prüfung.");
+                player.NotifyError("Invalid model/hash.");
                 return;
             }
 
-            // spawn position a few meters ahead
-            var pos = p.Base.Position;
-            var heading = p.Base.Heading;
-            float rad = (float)(Math.PI / 180.0) * heading;
-            var spawnPos = new Vector3(
-                pos.X + (float)Math.Cos(rad) * 3.0f,
-                pos.Y + (float)Math.Sin(rad) * 3.0f,
-                pos.Z + 0.2f
-            );
+            var pos = player.GetForwardPosition(3.0f);
+            var heading = player.Base.Heading;
 
-            var veh = NAPI.Vehicle.CreateVehicle(hash, spawnPos, heading, 0, 0, plate);
-            if (veh == null || !veh.Exists)
-            {
-                p.NotifyError("Fahrzeug konnte nicht erstellt werden.");
-                return;
-            }
+            var sVeh = VehicleManager.Create(hash, pos, heading);
+            sVeh.Base.PrimaryColor = color1;
+            sVeh.Base.SecondaryColor = color2;
 
-            veh.Dimension = p.Base.Dimension;
-            veh.EngineStatus = true;
+            sVeh.OwnerId = player.CharacterId;
+            sVeh.Fuel = 55f;
+            sVeh.FuelMax = 60f;
+            sVeh.LightState = 0;
+            sVeh.Odometer = 0;
 
-            // link both ways using entity data
-            p.Base.SetData(DataKeys.LastSpawnedVehicle, veh);
-            veh.SetData(DataKeys.SpawnedByRemoteId, p.Base.Handle.Value);
-
-            // seat as driver
-            VehicleHelpers.SeatDriver(p.Base, veh);
-
-            p.NotifySuccess($"Spawned & entered: {model} (Hash: {hash}) Kennz.: {plate}");
+            player.NotifySuccess($"Spawned vehicle: {modelName} (hash {hash})");
         }
 
-        [Command("v")]
-        public void CmdVehAlias(Player basePlayer, string model, string plate = "SPIRIT")
-            => CmdVeh(basePlayer, model, plate);
-
-        [Command("dv")]
-        public void CmdDeleteVeh(Player basePlayer)
+        [Command("fuel")]
+        public void CmdFuel(Player basePlayer, string action = "check", float value = -1f)
         {
-            var p = basePlayer.AsSPlayer();
-            Vehicle? v = p.Base.Vehicle;
+            var sp = basePlayer.AsSPlayer();
+            var veh = basePlayer.Vehicle;
 
-            if (v == null || !v.Exists)
+            // Wenn kein Vehicle → nur bei "mult" erlauben
+            if (veh == null && action != "mult")
             {
-                v = p.Base.HasData(DataKeys.LastSpawnedVehicle)
-                    ? p.Base.GetData<Vehicle>(DataKeys.LastSpawnedVehicle)
-                    : null;
-            }
-
-            if (v == null || !v.Exists)
-            {
-                p.NotifyError($"Kein Fahrzeug gefunden.");
+                sp.NotifyError("You must be in a vehicle for this action.");
                 return;
             }
 
-            // allow deleting only own spawned vehicles (optional but recommended)
-            if (v.HasData(DataKeys.SpawnedByRemoteId))
+            var sVeh = veh != null ? VehicleManager.Get(veh) : null;
+
+            switch (action.ToLowerInvariant())
             {
-                var ownerId = v.GetData<ushort>(DataKeys.SpawnedByRemoteId);
-                if (ownerId != p.Base.Handle.Value)
-                {
-                    p.NotifyError($"Du kannst dieses fahrzeug nicht löschen.");
-                    return;
-                }
+                case "check":
+                    if (sVeh == null) { sp.NotifyError("This vehicle is not managed by VehicleManager."); return; }
+                    sp.NotifyInfo($"Fuel: {Math.Round(sVeh.Fuel, 1)} / {sVeh.FuelMax} L");
+                    break;
+
+                case "fill":
+                    if (sVeh == null) { sp.NotifyError("This vehicle is not managed by VehicleManager."); return; }
+
+                    float amount = value < 0 ? sVeh.FuelMax : value;
+                    sVeh.Fuel = Math.Min(amount, sVeh.FuelMax);
+
+                    var driver = sVeh.GetDriver();
+                    if (driver != null && driver.Exists)
+                    {
+                        driver.TriggerEvent("client:veh:updateFuel", sVeh.Fuel, sVeh.FuelMax);
+                    }
+
+                    sp.NotifySuccess($"Fuel set to {sVeh.Fuel}/{sVeh.FuelMax} L");
+                    break;
+
+                case "mult":
+                    if (value <= 0) value = 1.0f;
+                    SVehicle.FuelMultiplier = value;
+                    sp.NotifyInfo($"Fuel multiplier set to {value}x");
+                    break;
+
+                default:
+                    sp.NotifyError("Usage: /fuel check | fill [amount] | mult <factor>");
+                    break;
             }
-
-            try { v.Delete(); } catch { NAPI.Entity.DeleteEntity(v); }
-
-            if (p.Base.HasData(DataKeys.LastSpawnedVehicle))
-            {
-                var last = p.Base.GetData<Vehicle>(DataKeys.LastSpawnedVehicle);
-                if (last == null || last == v) p.Base.ResetData(DataKeys.LastSpawnedVehicle);
-            }
-
-            p.NotifySuccess($"Fahrzeug gelöscht.");
         }
+
+        [Command("setvehhealth")]
+        public void CmdSetVehHealth(Player basePlayer, int health)
+        {
+            var sPlayer = basePlayer.AsSPlayer();
+            var veh = basePlayer.Vehicle;
+            if (veh == null)
+            {
+                sPlayer.NotifyError("You are not in a vehicle!");
+                return;
+            }
+
+            var sVeh = VehicleManager.Get(veh);
+            if (sVeh == null)
+            {
+                sPlayer.NotifyError("Vehicle not registered as SVehicle!");
+                return;
+            }
+
+            if (health < 0) health = 0;
+            if (health > 1000) health = 1000;
+
+            if(health > 0) veh.SetSharedData("veh:engineDead", false);
+            else if (health == 0) veh.SetSharedData("veh:engineDead", true);// falls vorher tot war
+            sVeh.Health = health; // setzt auch SharedData
+            sPlayer.NotifyInfo($"Engine health set to {health}");
+        }
+
+        [Command("vehdebug")]
+        public void CmdVehDebug(Player basePlayer)
+        {
+            var sPlayer = basePlayer.AsSPlayer();
+            var veh = basePlayer.Vehicle;
+
+            if (veh == null)
+            {
+                sPlayer.NotifyError("You are not in a vehicle!");
+                return;
+            }
+
+            var sVeh = VehicleManager.Get(veh);
+            if (sVeh == null)
+            {
+                sPlayer.NotifyError("No SVehicle wrapper found!");
+                return;
+            }
+
+            // Ausgabe aktueller Health-Werte
+            sPlayer.NotifyInfo(
+                $"VehDebug → Health: {sVeh.Health}, " +
+                $"Body: {sVeh.LastBodyHealth:F1}, Engine: {sVeh.LastEngineHealth:F1}, Petrol: {sVeh.LastPetrolHealth:F1}");
+
+            // Optional auch letzten Updatezeitpunkt anzeigen
+            sPlayer.NotifyInfo(
+                $"Last update: {sVeh.LastHealthUpdate:HH:mm:ss.fff}");
+        }
+
+
+
+
     }
 }

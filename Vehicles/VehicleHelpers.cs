@@ -1,8 +1,8 @@
 ﻿// All comments in English as requested
-using System;
 using GTANetworkAPI;
 using Spirit.Core.Entities;
 using Spirit.Core.Utils;
+using System;
 
 namespace Spirit.Core.Vehicles
 {
@@ -33,13 +33,6 @@ namespace Spirit.Core.Vehicles
             }
         }
 
-        [RemoteEvent("server:veh:setLightState")]
-        public static void VehSetLightState(Player player, int state)
-        {
-            if (player.Vehicle == null) return;
-            if (state < 0 || state > 2) state = 0;
-            player.Vehicle.SetSharedData("veh:setLightState", state);
-        }
 
         /// <summary>
         /// Seats player as driver (index 0). Tries immediately and again after a short delay.

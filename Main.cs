@@ -1,4 +1,5 @@
 ﻿using GTANetworkAPI;
+using Spirit.Core.Services.Needs;
 using Spirit.Core.Vehicles;
 
 namespace Spirit.Core
@@ -10,6 +11,7 @@ namespace Spirit.Core
         {
             VehicleManager.StartFuelLoop();
             VehicleManager.StartOdometerLoop();
+            NeedsService.StartLoop();
         }
     }
 }

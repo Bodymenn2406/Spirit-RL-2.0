@@ -15,13 +15,69 @@ namespace Spirit.Core.Entities
         // DB linkage
         public int AccountId { get; set; }
         public int CharacterId { get; set; }
+        private bool _isloggedin;
+        public bool IsLoggedIn
+        {
+            get => _isloggedin;
+            set
+            {
+                if (_isloggedin != value)
+                {
+                    _isloggedin = value;
+                    Dirty = true;
+                    if (Base != null && Base.Exists)
+                        Base.SetSharedData("player:isLoggedIn", _isloggedin);
+
+                }
+            }
+        }
 
         // Simple gameplay state
         private int _money;
         public int Money
         {
             get => _money;
-            set { if (_money != value) { _money = value; Dirty = true; } }
+            set {
+                if (_money != value) {
+                    _money = value;
+                    Dirty = true;
+                    if (Base != null && Base.Exists)
+                        Base.SetSharedData("player:money", _money);
+
+                } 
+            }
+        }
+        private float _hunger;
+        public float Hunger
+        {
+            get => _hunger;
+            set
+            {
+                if (_hunger != value)
+                {
+                    _hunger = value;
+                    Dirty = true;
+                    if (Base != null && Base.Exists)
+                        Base.SetSharedData("player:hunger", _hunger);
+
+                }
+            }
+        }
+        private float _thirst;
+        public float Thirst
+        {
+            get => _thirst;
+            set
+            {
+                if (_thirst != value)
+                {
+                    _thirst = value;
+                    Dirty = true;
+                    if (Base != null && Base.Exists)
+                        Base.SetSharedData("player:thirst", _thirst);
+
+                }
+            }
         }
 
         // Persistence helpers

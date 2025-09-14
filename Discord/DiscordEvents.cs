@@ -170,26 +170,17 @@ namespace Spirit.Core.Discord
                         sp.CharacterId = ch.Id;
                         sp.Money = ch.Money;
                         sp.Dirty = false;
+                        sp.Hunger = ch.Hunger;
+                        sp.Thirst = ch.Thirst;
+                        sp.IsLoggedIn = true;
 
                         // Success → UI + unfreeze + close
                         p.TriggerEvent("client:ui:auth:success", JsonSerializer.Serialize(new { welcomeMsg = "Willkommen!" }));
                         p.TriggerEvent("client:player:freeze", false);
+                        p.Position = new Vector3(ch.PosX, ch.PosY, ch.PosZ);
 
                         // Spawn & autosave
                         PlayerPersistence.FinalizeSpawn(p, ch);
-
-                        // All comments in English as requested
-                        var hud = new
-                        {
-                            money = ch.Money,       // TODO: replace with your current fields
-                            hunger = 50,             // TODO: hook to your needs system
-                            thirst = 50,             // TODO: hook to your needs system
-                            time = DateTime.Now.ToString("HH:mm"),
-                            logoUrl = "https://airlineemployeeshop.com/cdn/shop/products/spirit002roundmagnet_1200x1200.jpg?v=1617370061", // or a CDN URL
-                            slogan = "Spirit RL",
-                            version = "0.1.1"
-                        };
-                        p.TriggerEvent("client:ui:hud:update", JsonSerializer.Serialize(hud));
 
                         if (SpiritHost.Config.Gameplay.AutoSaveSeconds > 0)
                             PlayerPersistence.StartAutoSave(p.AsSPlayer(), TimeSpan.FromSeconds(SpiritHost.Config.Gameplay.AutoSaveSeconds));

@@ -1,10 +1,8 @@
 ﻿using GTANetworkAPI;
+using Spirit.Core.Config;
 using Spirit.Core.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Spirit.Core.Services.Needs;
+using System.Globalization;
 
 namespace Spirit.Core.Players
 {
@@ -37,6 +35,49 @@ namespace Spirit.Core.Players
             {
                 sPlayer.NotifyError("Error giving weapon.");
             }
+        }
+
+        [Command("drink")]
+        public void CmdDrink(Player player, string item = "water")
+        {
+            var sp = player.AsSPlayer();
+            NeedsService.ApplyConsume(sp, item);
+        }
+
+        [Command("eat")]
+        public void CmdEat(Player player, string item = "sandwich")
+        {
+            var sp = player.AsSPlayer();
+            NeedsService.ApplyConsume(sp, item);
+        }
+
+        // /needmult <value> [seconds]
+        [Command("needmult", "~y~Usage: /needmult <value> [seconds]")]
+        public void CmdNeedMult(Player player, float value, int seconds = 0)
+        {
+            var sp = player.AsSPlayer();
+            if (sp == null) return;
+
+            if (value < 0f) value = 0f;
+            if (value > 1000f) value = 1000f;
+
+            int? ms = seconds > 0 ? seconds * 1000 : (int?)null;
+            NeedsService.SetDrainMultiplier(player, value, ms);
+
+            sp.NotifyInfo(ms.HasValue
+                ? $"Needs-Drain-Multiplikator gesetzt: x{value:0.##} für {seconds}s."
+                : $"Needs-Drain-Multiplikator gesetzt: x{value:0.##}");
+        }
+
+        // /needmultreset
+        [Command("needmultreset")]
+        public void CmdNeedMultReset(Player player)
+        {
+            var sp = player.AsSPlayer();
+            if (sp == null) return;
+
+            NeedsService.SetDrainMultiplier(player, 7f);
+            sp.NotifyInfo("Needs-Drain-Multiplikator zurückgesetzt.");
         }
     }
 }

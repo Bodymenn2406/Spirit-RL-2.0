@@ -92,6 +92,8 @@ namespace Spirit.Core.Players
                 ch.PosZ = snap.pos.Z;
                 ch.Heading = snap.heading;
                 ch.Money = sp.Money;
+                ch.Hunger = sp.Hunger;
+                ch.Thirst = sp.Thirst;
 
                 await db.SaveChangesAsync().ConfigureAwait(false);
 

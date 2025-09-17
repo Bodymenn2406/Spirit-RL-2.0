@@ -49,6 +49,29 @@ namespace Spirit.Core.Vehicles
             player.NotifySuccess($"Spawned vehicle: {modelName} (hash {hash})");
         }
 
+        [Command("modveh")]
+        public void CmdModVehSpawn(Player basePlayer, string modelName, int color1 = 0, int color2 = 0)
+        {
+            SPlayer player = basePlayer.AsSPlayer(); // oder dein eigener Getter
+
+            uint hash = NAPI.Util.GetHashKey(modelName);
+
+            var pos = player.GetForwardPosition(3.0f);
+            var heading = player.Base.Heading;
+
+            var sVeh = VehicleManager.Create(hash, pos, heading);
+            sVeh.Base.PrimaryColor = color1;
+            sVeh.Base.SecondaryColor = color2;
+
+            sVeh.OwnerId = player.CharacterId;
+            sVeh.Fuel = 55f;
+            sVeh.FuelMax = 60f;
+            sVeh.LightState = 0;
+            sVeh.Odometer = 0;
+
+            player.NotifySuccess($"Spawned vehicle: {modelName} (hash {hash})");
+        }
+
         [Command("fuel")]
         public void CmdFuel(Player basePlayer, string action = "check", float value = -1f)
         {

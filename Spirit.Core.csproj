@@ -27,16 +27,6 @@
 		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<!-- The actual server API; needed to compile Script/Player/etc. -->
-		<Reference Include="GTANetworkAPI">
-			<HintPath>$(RagempServerDir)\dotnet\runtime\Bootstrapper.dll</HintPath>
-			<Private>false</Private>
-			<!-- do NOT copy to output/resource -->
-			<SpecificVersion>false</SpecificVersion>
-		</Reference>
-	</ItemGroup>
-
 	<Target Name="PostBuildCopyToRage" AfterTargets="Build">
 		<Message Importance="high" Text="&gt;&gt;&gt; Copying Core + deps to $(RagempResourceDir)" />
 		<MakeDir Directories="$(RagempResourceDir)" />
@@ -63,6 +53,11 @@
 		<None Include="appsettings.json" Condition="Exists('appsettings.json')">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="Bootstrapper">
+	    <HintPath>..\..\..\..\..\RAGEMP\server-files\dotnet\runtime\Bootstrapper.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 	<Target Name="PostBuildCopyConfig" AfterTargets="Build" Condition="Exists('appsettings.json')">
 		<Copy SourceFiles="$(TargetDir)appsettings.json" DestinationFolder="$(RagempResourceDir)" SkipUnchangedFiles="true" />
